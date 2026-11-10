@@ -39,6 +39,36 @@ metrics:
   # A blank line is read as zero when the hospital filed that statement
   # (balance sheet lines need total assets; income lines need net income).
   blank_lines_are_zero_when_statement_filed: true
+  # ASSUMPTION: a hospital that reports no interest and shows no debt on its balance
+  # sheet pays zero interest. Others with no reported interest stay blank.
+  assume_zero_interest_when_no_debt: true
+
+# Stress test (Phase 3). Every number here is an ASSUMPTION to tune, not a forecast.
+stress:
+  # Required cushion: EBIDA must be at least this multiple of total debt payments.
+  target_dscr: 1.25
+  # Share of cash operating expenses that falls in step with patient volume.
+  variable_cost_share: 0.40
+  # Each scenario lists the shocks it applies; a shock left out is zero.
+  #   medicaid_cut:   fractional fall in Medicaid net revenue
+  #   volume_drop:    fractional fall in net patient revenue
+  #   labor_increase: fractional rise in salary expense
+  scenarios:
+    medicaid_cut: {medicaid_cut: 0.10}
+    volume_drop: {volume_drop: 0.10}
+    labor_shock: {labor_increase: 0.05}
+    combined: {medicaid_cut: 0.10, volume_drop: 0.10, labor_increase: 0.05}
+
+# Capital types. Rate and term turn an annual payment into a principal amount.
+# PLACEHOLDERS: illustrative values only, NOT official program terms or current
+# market rates. Verify each against the real program before relying on it.
+capital_types:
+  usda_community_facilities: {label: "USDA Community Facilities loan", annual_rate: 0.040, term_years: 35}
+  cdfi_nmtc: {label: "CDFI / New Markets Tax Credit loan", annual_rate: 0.050, term_years: 20}
+  hud_242: {label: "HUD Section 242 insured mortgage", annual_rate: 0.055, term_years: 25}
+  bank_loan: {label: "Bank loan", annual_rate: 0.070, term_years: 10}
+  tax_exempt_bonds: {label: "Tax-exempt municipal bonds", annual_rate: 0.045, term_years: 30}
+  sale_leaseback: {label: "Sale-leaseback / REIT (rent treated as the payment)", annual_rate: 0.075, term_years: 20}
 
 quality:
   # A cost report covering fewer/more days than this is flagged as partial/odd-length.

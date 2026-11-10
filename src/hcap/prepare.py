@@ -61,6 +61,18 @@ def interest_expense(interest_ws_a: pd.Series, interest_a7_booked: pd.Series) ->
     return total.where(total >= 0)
 
 
+def assume_zero_interest(
+    interest: pd.Series, reported: pd.Series, long_term_debt: pd.Series, current_portion: pd.Series
+) -> pd.Series:
+    """Set interest to zero where none was reported AND the balance sheet shows no debt.
+
+    ASSUMPTION: a hospital with no borrowings pays no interest. Hospitals whose debt is
+    positive, negative or unknown are left missing.
+    """
+    no_debt = (long_term_debt == 0) & (current_portion == 0)
+    return interest.mask(~reported & no_debt, 0.0)
+
+
 def long_term_debt(mortgage: pd.Series, notes: pd.Series, unsecured: pd.Series) -> pd.Series:
     """Mortgages + notes + unsecured loans. Missing if any component is negative.
 
@@ -77,14 +89,14 @@ def current_portion_proxy(notes_loans_short_term: pd.Series) -> pd.Series:
 
 def build_flags(df: pd.DataFrame) -> pd.Series:
     """Plain-English caveats for each hospital, joined with '; '."""
-    has_debt = (df["long_term_debt"] > 0) | (df["notes_loans_short_term"] > 0)
-    no_interest = df["interest_ws_a"].isna() & df["interest_a7_booked"].isna()
+    no_interest = ~df["interest_reported"]
     tests = {
         "partial year scaled to 12 months": df["annualized"],
         "values taken from newer HCRIS version": df["values_from_hcris"],
         "no balance sheet": df["total_assets"].isna(),
-        "interest not reported, but debt on balance sheet": no_interest & has_debt,
-        "interest not reported, no debt on balance sheet": no_interest & ~has_debt,
+        "interest assumed zero (none reported, no debt on balance sheet)":
+            no_interest & df["interest_expense"].notna(),
+        "interest not reported, debt present or unknown": no_interest & df["interest_expense"].isna(),
         "interest negative, unusable": ~no_interest & df["interest_expense"].isna(),
         "long-term debt unusable (negative component)":
             df["total_assets"].notna() & df["long_term_debt"].isna(),
@@ -97,12 +109,18 @@ def build_flags(df: pd.DataFrame) -> pd.Series:
     return labels.apply(lambda row: "; ".join(labels.columns[row.to_numpy(dtype=bool)]), axis=1)
 
 
-def compute_metrics(df: pd.DataFrame, includes_other_income: bool, days_in_year: int) -> pd.DataFrame:
+def compute_metrics(
+    df: pd.DataFrame, includes_other_income: bool, days_in_year: int, zero_interest_when_no_debt: bool
+) -> pd.DataFrame:
     """Add derived inputs, the Phase 2 metrics, and the flags column."""
     out = df.copy()
+    out["interest_reported"] = out["interest_ws_a"].notna() | out["interest_a7_booked"].notna()
     out["interest_expense"] = interest_expense(out["interest_ws_a"], out["interest_a7_booked"])
     out["long_term_debt"] = long_term_debt(out["mortgage_payable"], out["notes_payable"], out["unsecured_loans"])
     out["current_portion_ltd"] = current_portion_proxy(out["notes_loans_short_term"])
+    if zero_interest_when_no_debt:
+        out["interest_expense"] = assume_zero_interest(
+            out["interest_expense"], out["interest_reported"], out["long_term_debt"], out["current_portion_ltd"])
     out["operating_revenue"] = out["net_patient_revenue"] + (out["other_income"] if includes_other_income else 0)
     out["total_expenses"] = out["operating_expense"] + out["other_expenses"]
 

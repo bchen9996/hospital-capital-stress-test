@@ -2,7 +2,7 @@
 
 Screens each hospital's finances from public CMS data, estimates how much new annual
 debt or rent payment it could carry, reruns that under stress, and matches it to a rung
-on a capital ladder. Built in phases. **Phases 1 (data ingestion) and 2 (financial metrics) are done; Phases 3-5 are not built yet.**
+on a capital ladder. Built in phases. **Phases 1 (data ingestion), 2 (financial metrics) and 3 (stress test) are done; Phases 4-5 are not built yet.**
 
 Screening and educational tool only. Not financial, investment, or municipal advisory advice.
 Based on public data that may be 1-2 years old.
@@ -13,6 +13,7 @@ Based on public data that may be 1-2 years old.
 pip install -r requirements.txt
 python scripts/phase1.py     # downloads CMS files, builds data/hospitals.duckdb, writes the quality report
 python scripts/phase2.py     # computes metrics; writes reports/phase2_metrics.csv and phase2_summary.md
+python scripts/phase3.py     # headroom, stress scenarios, affordable principal
 pytest
 ```
 
@@ -117,4 +118,43 @@ which would understate both shares, Medicaid especially in Missouri. Not yet con
 - **Report version:** where raw HCRIS holds a newer version of a report than the public file,
   all overlapping fields come from HCRIS.
 
+- **Zero interest:** a hospital that reports no interest and shows no debt on its balance
+  sheet is assumed to pay none (`assume_zero_interest_when_no_debt`).
+
 Each hospital carries a `flags` column listing which of these caveats apply to it.
+
+## Stress test (Phase 3)
+
+Formulas are in `src/hcap/stress.py`. Every parameter is under `stress:` in `config.yaml`
+and is an assumption to tune, not a forecast.
+
+**Headroom** = (EBIDA / target DSCR) − existing debt service.
+The extra annual debt or rent payment the hospital could take on and still keep EBIDA at
+1.25 times its total payments. Negative means it is already below that cushion.
+
+**Scenarios.** Each one recomputes EBIDA, then headroom. Debt service does not change.
+
+| Scenario | What happens | Default |
+|---|---|---|
+| Medicaid cut | Medicaid net revenue falls; no expense falls with it | 10% |
+| Volume drop | Net patient revenue falls; only the variable share of cash operating expenses falls with it | 10% drop, 40% variable |
+| Labor shock | Salary expense rises | 5% |
+| Combined | All three, compounding | as above |
+
+- Medicaid revenue is the figure reported on Worksheet S-10 where it is positive and no larger
+  than net patient revenue; otherwise Medicaid's share of inpatient days times net patient revenue.
+- Cash operating expenses = operating expenses − depreciation − interest.
+- Salaries are from Worksheet A and exclude benefits and contract labor, so the labor shock
+  is on the light side.
+
+**Stressed headroom** is the lowest of the baseline and the four scenarios.
+
+**Affordable principal** converts stressed headroom to a loan amount for each capital type with
+the level-payment annuity formula, principal = payment × (1 − (1 + r)^−n) / r. The rates and
+terms under `capital_types:` are **placeholders**, not official program terms or market quotes.
+
+### What the stress test cannot see
+
+- Hospitals owned by a health system often show no debt and no interest of their own, because
+  the parent borrows. Their debt service reads as zero and their headroom is overstated.
+- 25 of the 99 hospitals have no usable interest figure and get no headroom at all.

@@ -53,7 +53,10 @@ def main() -> None:
     if m["blank_lines_are_zero_when_statement_filed"]:
         selected = prepare.fill_blank_lines(selected)
     selected = prepare.annualize(selected, m["days_in_year"])
-    result = prepare.compute_metrics(selected, m["operating_revenue_includes_other_income"], m["days_in_year"])[OUTPUT]
+    result = prepare.compute_metrics(
+        selected, m["operating_revenue_includes_other_income"], m["days_in_year"],
+        m["assume_zero_interest_when_no_debt"],
+    )[OUTPUT]
 
     ingest.write_duckdb(ROOT / data["db_path"], {"metrics": result})
     report_dir = ROOT / data["report_dir"]
