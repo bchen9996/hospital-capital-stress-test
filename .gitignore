@@ -1,0 +1,7 @@
+# Downloaded CMS files and the derived database are rebuilt by scripts/phase1.py
+data/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc

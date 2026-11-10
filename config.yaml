@@ -1,0 +1,25 @@
+# Single source of truth for data sources, thresholds, rates and scenarios.
+# Nothing in the code should hard-code a value that lives here.
+
+state: MO
+
+data:
+  raw_dir: data/raw
+  db_path: data/hospitals.duckdb
+  report_dir: reports
+  # CMS "Hospital Provider Cost Report". The year is the CMS file label: it holds
+  # cost reports whose fiscal year BEGINS in that federal fiscal year (Oct 2023 - Sep 2024).
+  cost_report_year: 2024
+  # Raw HCRIS (Form CMS-2552-10) for the same federal fiscal year. Supplies interest
+  # expense and accumulated depreciation, which the public-use file leaves out.
+  hcris_url: "https://downloads.cms.gov/FILES/HCRIS/HOSP10FY2024.ZIP"
+  cost_report_url: "https://data.cms.gov/sites/default/files/2026-10/46b1f5a0-a9dd-4431-beee-2ee7194b4135/CostReport_2024_Final.csv"
+  # CMS "Hospital General Information" (Care Compare), dataset xubh-q36u.
+  hgi_url: "https://data.cms.gov/provider-data/sites/default/files/resources/893c372430d9d71a1c52737d01239d47_1785189955/Hospital_General_Information.csv"
+
+quality:
+  # A cost report covering fewer/more days than this is flagged as partial/odd-length.
+  full_year_min_days: 360
+  full_year_max_days: 371
+  # Balance sheet is flagged if assets differ from liabilities + fund balances by more than this ($).
+  balance_tolerance_dollars: 1000
