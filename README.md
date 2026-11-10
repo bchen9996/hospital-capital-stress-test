@@ -2,7 +2,7 @@
 
 Screens each hospital's finances from public CMS data, estimates how much new annual
 debt or rent payment it could carry, reruns that under stress, and matches it to a rung
-on a capital ladder. Built in phases. **Phases 1 (data ingestion), 2 (financial metrics) and 3 (stress test) are done; Phases 4-5 are not built yet.**
+on a capital ladder. Built in phases. **Phases 1 (data ingestion), 2 (financial metrics), 3 (stress test) and 4 (capital matcher) are done; Phase 5 (dashboard) is not built yet.**
 
 Screening and educational tool only. Not financial, investment, or municipal advisory advice.
 Based on public data that may be 1-2 years old.
@@ -14,6 +14,7 @@ pip install -r requirements.txt
 python scripts/phase1.py     # downloads CMS files, builds data/hospitals.duckdb, writes the quality report
 python scripts/phase2.py     # computes metrics; writes reports/phase2_metrics.csv and phase2_summary.md
 python scripts/phase3.py     # headroom, stress scenarios, affordable principal
+python scripts/phase4.py     # geocodes addresses (Census Bureau), matches hospitals to the capital ladder
 pytest
 ```
 
@@ -152,6 +153,40 @@ The extra annual debt or rent payment the hospital could take on and still keep 
 **Affordable principal** converts stressed headroom to a loan amount for each capital type with
 the level-payment annuity formula, principal = payment × (1 − (1 + r)^−n) / r. The rates and
 terms under `capital_types:` are **placeholders**, not official program terms or market quotes.
+
+## Capital ladder (Phase 4)
+
+Rules are in `src/hcap/matcher.py`, one small function per rung. No machine learning.
+**Every threshold under `capital_ladder:` in `config.yaml` is a placeholder invented for
+screening. None is an official eligibility rule of any program, lender or investor.**
+
+| Rung | Screening rule used here |
+|---|---|
+| 1. Grants / affiliation / Rural Emergency Hospital conversion | Baseline headroom is negative. Also the fallback when headroom is positive but no other rung fits. |
+| 2. USDA Community Facilities loan | Baseline headroom is not negative, and the town has 20,000 people or fewer |
+| 3. CDFI / New Markets Tax Credits | Baseline headroom is not negative, and the census tract is on the CDFI Fund's NMTC low-income list |
+| 4. HUD Section 242 / bank loan | Baseline headroom is at least 2% of patient revenue and stressed headroom stays above zero |
+| 5. Tax-exempt municipal bonds | Stressed headroom is at least 3% of patient revenue and net patient revenue is at least $75M |
+| 6. Sale-leaseback / REIT capital | Combined-scenario EBIDA covers existing debt service plus an estimated rent at least 2.0 times. Always shown with a warning; never the primary match. |
+
+- **Primary match** is the highest rung a hospital qualifies for. **Alternates** are the other
+  rungs it qualifies for. Each rung, met or not, gets a plain-English reason in `match_details`.
+- **Cannot assess:** hospitals with no headroom figure (missing interest) get no match.
+- **Estimated rent** for rung 6 = 7.5% of the net book value of fixed assets. This is a
+  construction of this tool, not how a real lease would be priced.
+
+### Location data
+
+- **Coordinates and census tract:** U.S. Census Bureau geocoder, from the street address.
+  14 of 99 addresses do not geocode; their tract, and so their NMTC status, is unknown.
+- **Town population:** the incorporated place the address falls in, from the Census Bureau's
+  city and town file (April 2020 base). Where the address did not geocode or lies outside
+  town limits, the mailing city's name is matched instead (20 hospitals).
+- **NMTC low-income tracts:** the CDFI Fund's eligibility dataset (2016-2020 ACS, 2020 tracts).
+- A town of 20,000 or fewer is not the same as USDA-eligible: small suburbs of large metro
+  areas pass this screen. USDA's own eligibility map is the real test.
+- The CMS rural/urban flag in the cost report is not used. It marks Barnes-Jewish Hospital in
+  St. Louis as rural, so it is not trusted here.
 
 ### What the stress test cannot see
 

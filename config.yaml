@@ -70,6 +70,37 @@ capital_types:
   tax_exempt_bonds: {label: "Tax-exempt municipal bonds", annual_rate: 0.045, term_years: 30}
   sale_leaseback: {label: "Sale-leaseback / REIT (rent treated as the payment)", annual_rate: 0.075, term_years: 20}
 
+# Location data (Phase 4).
+location:
+  geocode_cache: data/geo_cache.csv
+  # Census Bureau city and town population file for the state.
+  town_population_url: "https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/cities/totals/sub-est2025_29.csv"
+  # ESTIMATESBASE2020 is the April 2020 census base; POPESTIMATE2025 is the latest estimate.
+  town_population_column: ESTIMATESBASE2020
+  # CDFI Fund NMTC Low-Income Community eligibility by 2020 census tract (2016-2020 ACS).
+  nmtc_tracts_url: "https://www.cdfifund.gov/system/files?file=2026-09/NMTC_LIC_Eligibility_Dataset_9_3_2026.xlsx"
+
+# Capital ladder rules (Phase 4).
+# PLACEHOLDERS: every number below is a screening threshold invented for this tool.
+# None is an official eligibility requirement of USDA, the CDFI Fund, HUD, a bank,
+# a bond underwriter or a REIT. Verify each against the real program rules.
+# "Headroom margin" = headroom / net patient revenue.
+capital_ladder:
+  usda:
+    max_town_population: 20000          # PLACEHOLDER
+  hud_bank:
+    min_baseline_headroom_margin: 0.02  # PLACEHOLDER: what counts as "moderate"
+  bonds:
+    min_stressed_headroom_margin: 0.03  # PLACEHOLDER: what counts as "solid"
+    min_net_patient_revenue: 75000000   # PLACEHOLDER: what counts as "enough scale"
+  sale_leaseback:
+    # Hypothetical rent = this yield x net book value of fixed assets.
+    rent_yield_on_fixed_assets: 0.075   # PLACEHOLDER
+    # Combined-scenario EBIDA / (existing debt service + hypothetical rent) must be at least this.
+    min_combined_rent_coverage: 2.0     # PLACEHOLDER: the "high threshold"
+    # false: sale-leaseback is only ever listed as an alternate, never the primary match.
+    can_be_primary: false
+
 quality:
   # A cost report covering fewer/more days than this is flagged as partial/odd-length.
   full_year_min_days: 360

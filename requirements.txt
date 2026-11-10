@@ -7,3 +7,4 @@ pytest
 streamlit
 folium
 streamlit-folium
+openpyxl

@@ -24,7 +24,7 @@ OUTPUT = [
     "star_rating", "rural_urban", "beds", "fy_begin", "fy_end", "period_days",
     "operating_revenue", "operating_expense", "net_income", "depreciation", "interest_expense",
     "cash", "temp_investments", "long_term_debt", "current_portion_ltd", "total_fund_balances",
-    "accumulated_depreciation", "salaries", "medicaid_net_revenue", "total_patient_revenue",
+    "accumulated_depreciation", "total_fixed_assets", "salaries", "medicaid_net_revenue", "total_patient_revenue",
     "net_patient_revenue", "other_income", "other_expenses", "total_expenses",
     *METRICS, "flags",
 ]
