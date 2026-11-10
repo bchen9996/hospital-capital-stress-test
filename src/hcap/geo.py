@@ -7,13 +7,17 @@ Sources:
 """
 
 import re
+import time
 from pathlib import Path
 
 import pandas as pd
 import requests
 
 GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress"
-GEO_COLUMNS = ["ccn", "geocoded_address", "latitude", "longitude", "tract_geoid", "place_geoid", "place_name"]
+CENSUS_POINT_URL = "https://geocoding.geo.census.gov/geocoder/geographies/coordinates"
+OSM_URL = "https://nominatim.openstreetmap.org/search"
+GEO_COLUMNS = ["ccn", "geocoded_address", "latitude", "longitude", "tract_geoid", "place_geoid",
+               "place_name", "geocode_source"]
 
 
 def clean_street(street: str) -> str:
@@ -73,22 +77,79 @@ def geocode_address(address: str, session: requests.Session) -> dict | None:
     return parse_geocoder_response(resp.json())
 
 
-def geocode_hospitals(hospitals: pd.DataFrame, cache_path: Path) -> pd.DataFrame:
-    """Geocode every hospital once; results are cached in a CSV so reruns make no calls."""
-    cache = (pd.read_csv(cache_path, dtype={"ccn": str, "tract_geoid": str, "place_geoid": str})
-             if cache_path.exists() else pd.DataFrame(columns=GEO_COLUMNS))
-    todo = hospitals[~hospitals["ccn"].isin(cache["ccn"])]
+def parse_point_response(payload: dict) -> dict:
+    """Tract and incorporated place from a Census coordinates lookup."""
+    layers = payload.get("result", {}).get("geographies", {})
+    tract = (layers.get("Census Tracts") or [{}])[0]
+    place = (layers.get("Incorporated Places") or [{}])[0]
+    return {"tract_geoid": tract.get("GEOID"), "place_geoid": place.get("GEOID"), "place_name": place.get("NAME")}
+
+
+def geographies_for_point(latitude: float, longitude: float, session: requests.Session) -> dict:
+    """Ask the Census geocoder which tract and town a coordinate falls in."""
+    params = {"x": longitude, "y": latitude, "benchmark": "Public_AR_Current",
+              "vintage": "Current_Current", "format": "json"}
+    resp = session.get(CENSUS_POINT_URL, params=params, timeout=60)
+    resp.raise_for_status()
+    return parse_point_response(resp.json())
+
+
+def parse_osm_response(results: list[dict], state_name: str) -> dict | None:
+    """Coordinates of the first OpenStreetMap hit inside the state. None if there is none."""
+    for hit in results:
+        if state_name in hit.get("display_name", ""):
+            return {"latitude": float(hit["lat"]), "longitude": float(hit["lon"])}
+    return None
+
+
+def geocode_with_osm(row: pd.Series, session: requests.Session, user_agent: str, state_name: str) -> dict | None:
+    """Fallback: find the hospital with OpenStreetMap's Nominatim, by address then by name.
+
+    Nominatim's usage policy asks for an identifying User-Agent and at most one request a second.
+    """
+    queries = [*candidate_addresses(row), f"{row['hospital_name']}, {row['city']}, {state_name}"]
+    for query in queries:
+        time.sleep(1.1)
+        resp = session.get(OSM_URL, params={"q": query, "format": "jsonv2", "countrycodes": "us", "limit": 3},
+                           headers={"User-Agent": user_agent}, timeout=60)
+        resp.raise_for_status()
+        point = parse_osm_response(resp.json(), state_name)
+        if point:
+            return {"geocoded_address": query, **point,
+                    **geographies_for_point(point["latitude"], point["longitude"], session)}
+    return None
+
+
+def geocode_hospitals(
+    hospitals: pd.DataFrame, cache_path: Path, osm_user_agent: str | None = None, state_name: str = "Missouri"
+) -> pd.DataFrame:
+    """Geocode every hospital once; results are cached in a CSV so reruns make no calls.
+
+    The Census geocoder is tried first. If it has no match and `osm_user_agent` is given,
+    OpenStreetMap is tried. `geocode_source` records which service placed the hospital.
+    """
+    if cache_path.exists():
+        cache = pd.read_csv(cache_path, dtype={"ccn": str, "tract_geoid": str, "place_geoid": str})
+        cache = cache.reindex(columns=GEO_COLUMNS)
+    else:
+        cache = pd.DataFrame(columns=GEO_COLUMNS)
+    todo = hospitals[~hospitals["ccn"].isin(cache.loc[cache["geocode_source"].notna(), "ccn"])]
     rows = []
     with requests.Session() as session:
         for _, row in todo.iterrows():
-            result, used = None, None
+            result, source = None, "not found"
             for address in candidate_addresses(row):
-                result, used = geocode_address(address, session), address
+                result = geocode_address(address, session)
                 if result:
+                    result, source = {"geocoded_address": address, **result}, "census"
                     break
-            rows.append({"ccn": row["ccn"], "geocoded_address": used if result else None, **(result or {})})
+            if result is None and osm_user_agent:
+                result = geocode_with_osm(row, session, osm_user_agent, state_name)
+                source = "openstreetmap" if result else "not found"
+            rows.append({"ccn": row["ccn"], **(result or {}), "geocode_source": source})
     if rows:
-        cache = pd.concat([cache, pd.DataFrame(rows, columns=GEO_COLUMNS)], ignore_index=True)
+        cache = pd.concat([cache[~cache["ccn"].isin(todo["ccn"])], pd.DataFrame(rows, columns=GEO_COLUMNS)],
+                          ignore_index=True)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache.to_csv(cache_path, index=False)
     return cache

@@ -48,15 +48,16 @@ def main() -> None:
     with duckdb.connect(str(ROOT / data["db_path"]), read_only=True) as con:
         stress = con.execute("SELECT * FROM stress").df()
         address = con.execute(
-            "SELECT h.ccn, h.hgi_address, h.hgi_city, h.hgi_zip, h.street, h.city, h.zip "
+            "SELECT h.ccn, h.hospital_name, h.hgi_address, h.hgi_city, h.hgi_zip, h.street, h.city, h.zip "
             "FROM hospitals h JOIN stress s ON s.ccn = h.ccn AND s.fy_end = h.fy_end").df()
 
-    geocoded = geo.geocode_hospitals(address, ROOT / loc["geocode_cache"])
+    geocoded = geo.geocode_hospitals(
+        address, ROOT / loc["geocode_cache"], loc["osm_user_agent"] or None, loc["state_name"])
     towns = geo.load_town_population(
         ingest.download(loc["town_population_url"], geo_dir / "town_population.csv"), loc["town_population_column"])
     nmtc = geo.load_nmtc_tracts(ingest.download(loc["nmtc_tracts_url"], geo_dir / "nmtc_tracts.xlsx"))
     located = geo.attach_location(address, geocoded, towns, nmtc)
-    keep = ["ccn", "latitude", "longitude", "geocoded", "tract_geoid", "nmtc_eligible",
+    keep = ["ccn", "latitude", "longitude", "geocoded", "geocode_source", "tract_geoid", "nmtc_eligible",
             "town_name", "town_population", "town_source"]
 
     matches, details = matcher.run(stress.merge(located[keep], on="ccn"), cfg["capital_ladder"])

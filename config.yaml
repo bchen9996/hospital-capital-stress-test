@@ -73,6 +73,10 @@ capital_types:
 # Location data (Phase 4).
 location:
   geocode_cache: data/geo_cache.csv
+  state_name: Missouri
+  # Addresses the Census geocoder cannot place are sent to OpenStreetMap (Nominatim).
+  # Set to "" to turn this off. Nominatim requires an identifying User-Agent.
+  osm_user_agent: "hospital-capital-stress-test (github.com/bchen9996/hospital-capital-stress-test)"
   # Census Bureau city and town population file for the state.
   town_population_url: "https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/cities/totals/sub-est2025_29.csv"
   # ESTIMATESBASE2020 is the April 2020 census base; POPESTIMATE2025 is the latest estimate.
@@ -100,6 +104,22 @@ capital_ladder:
     min_combined_rent_coverage: 2.0     # PLACEHOLDER: the "high threshold"
     # false: sale-leaseback is only ever listed as an alternate, never the primary match.
     can_be_primary: false
+
+# Dashboard (Phase 5).
+dashboard:
+  map_center: [38.4, -92.4]
+  map_zoom: 7
+  # Map colour bands, by stressed headroom as a share of net patient revenue.
+  # Below the first number = deep red; between first and second = light red;
+  # between second and third = light blue; above the third = deep blue.
+  headroom_margin_bands: [-0.05, 0.0, 0.05]
+  # Slider ranges: [minimum, maximum, step]. Starting values come from `stress:` above.
+  sliders:
+    target_dscr: [1.0, 2.0, 0.05]
+    medicaid_cut: [0.0, 0.30, 0.01]
+    volume_drop: [0.0, 0.30, 0.01]
+    labor_increase: [0.0, 0.15, 0.01]
+    variable_cost_share: [0.0, 1.0, 0.05]
 
 quality:
   # A cost report covering fewer/more days than this is flagged as partial/odd-length.
