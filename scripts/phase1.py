@@ -53,6 +53,10 @@ def main() -> None:
     cost = ingest.add_period_fields(cost, q["full_year_min_days"], q["full_year_max_days"])
     hospitals = ingest.join_hgi(cost, ingest.tidy_hgi(hgi_raw))
     hospitals = add_hcris(hospitals, data["hcris_url"], year, raw_dir)
+    # Agreement is measured before any value is replaced.
+    agreement = quality.hcris_agreement(hospitals, list(hcris.CHECKS))
+    if cfg["data"]["prefer_hcris_when_versions_differ"]:
+        hospitals = hcris.apply_newer_version(hospitals, list(hcris.CHECKS))
 
     ingest.write_duckdb(ROOT / data["db_path"], {
         "cost_report_raw": cost_raw,
@@ -70,9 +74,9 @@ def main() -> None:
                 "Three candidate interest measures are pulled; none has been chosen yet. "
                 "A blank means the hospital reported nothing in that cell."),
         section("Raw HCRIS: agreement with the public file on shared cells",
-                quality.hcris_agreement(hospitals, list(hcris.CHECKS)),
+                agreement,
                 "Same-version rows prove the parsing. Different-version rows show how much a report "
-                "changed between the two CMS snapshots."),
+                "changed between the two CMS snapshots; for those reports the HCRIS value is used."),
         section("Raw HCRIS: fixed-asset roll-up failures", quality.fixed_asset_rollup(hospitals),
                 "Gross fixed assets minus accumulated depreciation should equal Worksheet G line 30."),
         section("Raw HCRIS: no matching record", quality.unmatched_hcris(hospitals)),

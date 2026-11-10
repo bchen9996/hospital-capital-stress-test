@@ -2,7 +2,7 @@
 
 Screens each hospital's finances from public CMS data, estimates how much new annual
 debt or rent payment it could carry, reruns that under stress, and matches it to a rung
-on a capital ladder. Built in phases. **Phase 1 (data ingestion) is done; Phases 2-5 are not built yet.**
+on a capital ladder. Built in phases. **Phases 1 (data ingestion) and 2 (financial metrics) are done; Phases 3-5 are not built yet.**
 
 Screening and educational tool only. Not financial, investment, or municipal advisory advice.
 Based on public data that may be 1-2 years old.
@@ -12,6 +12,7 @@ Based on public data that may be 1-2 years old.
 ```bash
 pip install -r requirements.txt
 python scripts/phase1.py     # downloads CMS files, builds data/hospitals.duckdb, writes the quality report
+python scripts/phase2.py     # computes metrics; writes reports/phase2_metrics.csv and phase2_summary.md
 pytest
 ```
 
@@ -66,6 +67,54 @@ accumulated depreciation equals Worksheet G line 30 for every report.
   Worksheet G line 40, "Notes and loans payable (short term)", which is in the extract.
 - No values are guessed for either.
 
-## Metrics
+## Metrics (Phase 2)
 
-To be written in Phase 2, one plain-English paragraph per metric.
+Formulas are in `src/hcap/metrics.py`; the rules that prepare their inputs are in
+`src/hcap/prepare.py`. Every switch mentioned below is in `config.yaml`.
+
+**Operating margin** = (operating revenue − operating expenses) / operating revenue.
+How many cents of each revenue dollar are left after running the hospital. Operating revenue
+is net patient revenue only by default, which makes hospitals that rely on tax support, grants
+or 340B income look worse than they are. Set `operating_revenue_includes_other_income: true`
+to add other income.
+
+**EBIDA** = net income + interest expense + depreciation.
+Roughly the cash the hospital generates in a year before paying lenders. It is the pool that
+debt payments come out of.
+
+**Days cash on hand** = (cash + short-term investments) / ((total expenses − depreciation) / 365).
+How many days the hospital could keep paying its bills if revenue stopped. Hospitals owned by
+a health system often sweep cash to the parent every night, so a near-zero figure for a system
+hospital says little about the system's liquidity. Long-term investments are not counted.
+
+**Average age of plant** = accumulated depreciation / annual depreciation expense, in years.
+How run-down the buildings and equipment are. Higher means older and a bigger capital need.
+Depreciation here is the capital-related figure from Worksheet A-7; where a hospital reports
+very little of it, the result is implausibly high.
+
+**Debt-to-capitalization** = long-term debt / (long-term debt + net assets).
+How much of the hospital's long-term funding is borrowed. Long-term debt is mortgages + notes
++ unsecured loans. It is left blank where any of those is negative (health-system intercompany
+balances) or where debt plus net assets is not positive.
+
+**Existing debt service** ≈ interest expense + current portion of long-term debt.
+**This is an approximation.** The cost report has no principal-payment line and no
+"current portion" line, so short-term notes and loans payable (Worksheet G line 40) stands in.
+It can overstate (line 40 includes lines of credit) or understate (system-level debt).
+
+**Medicaid share and Medicare share of days** = that payer's inpatient days / total inpatient days.
+A stand-in for payer mix. These day counts are believed to exclude managed-care (HMO) days,
+which would understate both shares, Medicaid especially in Missouri. Not yet confirmed.
+
+### Rules applied before the formulas
+
+- **Scope:** short-term acute and critical access hospitals only (`scope.facility_types`).
+- **One report per hospital:** the latest. Reports under 180 days are dropped.
+- **Partial years:** revenue, expense and other flow amounts are scaled to 365 days.
+- **Blanks:** a blank line counts as zero only if the hospital filed that statement.
+- **Interest expense:** Worksheet A line 113 + A-7 Part II capital interest. If neither is
+  reported, or the total is negative, interest is left blank, and so are EBIDA and debt service.
+- **Report version:** where raw HCRIS holds a newer version of a report than the public file,
+  all overlapping fields come from HCRIS.
+
+Each hospital carries a `flags` column listing which of these caveats apply to it.

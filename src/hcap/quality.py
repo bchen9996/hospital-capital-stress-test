@@ -78,11 +78,12 @@ def hcris_agreement(df: pd.DataFrame, fields: list[str], tolerance: float = 1.0)
     rows = []
     for same, group in df[df["hcris_matched"]].groupby("hcris_same_version"):
         for field in fields:
-            both = group[[field, f"hcris_{field}"]].dropna()
-            agree = ((both[field] - both[f"hcris_{field}"]).abs() <= tolerance).sum()
+            # A blank on one side only counts as a difference; blank on both sides is skipped.
+            pair = group[[field, f"hcris_{field}"]].dropna(how="all")
+            agree = ((pair[field] - pair[f"hcris_{field}"]).abs() <= tolerance).sum()
             rows.append({
                 "version": "same record number" if same else "different record number",
-                "field": field, "compared": len(both), "agree": int(agree), "differ": int(len(both) - agree),
+                "field": field, "compared": len(pair), "agree": int(agree), "differ": int(len(pair) - agree),
             })
     return pd.DataFrame(rows)
 

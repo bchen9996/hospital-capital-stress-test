@@ -47,13 +47,33 @@ FIELDS: dict[str, Cell] = {
     "interest_a7_allowable": Cell("A700003", ("003",), ("01100",)),
 }
 
-# Cells that ALSO exist in the public-use file. Used only to prove the parsing is right.
+# Cells that ALSO exist in the public-use file, at the locations its data dictionary gives.
+# Two uses: (1) same-version reports must agree exactly, which proves the parsing;
+# (2) when HCRIS holds a newer version of a report, these values replace the public file's.
 CHECKS: dict[str, Cell] = {
     "cash": Cell("G000000", ("001",), _G_FUNDS),
+    "temp_investments": Cell("G000000", ("002",), _G_FUNDS),
     "total_fixed_assets": Cell("G000000", ("030",), _G_FUNDS),
-    "depreciation": Cell("A700003", ("003",), ("00900",)),
-    "net_income": Cell("G300000", ("029",), ("00100",)),
+    "total_assets": Cell("G000000", ("036",), _G_FUNDS),
+    "notes_loans_short_term": Cell("G000000", ("040",), _G_FUNDS),
+    "mortgage_payable": Cell("G000000", ("046",), _G_FUNDS),
+    "notes_payable": Cell("G000000", ("047",), _G_FUNDS),
+    "unsecured_loans": Cell("G000000", ("048",), _G_FUNDS),
+    "other_lt_liabilities": Cell("G000000", ("049",), _G_FUNDS),
+    "total_lt_liabilities": Cell("G000000", ("050",), _G_FUNDS),
+    "total_fund_balances": Cell("G000000", ("059",), _G_FUNDS),
+    "total_patient_revenue": Cell("G300000", ("001",), ("00100",)),
     "net_patient_revenue": Cell("G300000", ("003",), ("00100",)),
+    "operating_expense": Cell("G300000", ("004",), ("00100",)),
+    "other_income": Cell("G300000", ("025",), ("00100",)),
+    "other_expenses": Cell("G300000", ("028",), ("00100",)),
+    "net_income": Cell("G300000", ("029",), ("00100",)),
+    "depreciation": Cell("A700003", ("003",), ("00900",)),
+    "salaries": Cell("A000000", ("200",), ("00100",)),
+    "days_medicare": Cell("S300001", ("014",), ("00600",)),
+    "days_medicaid": Cell("S300001", ("014",), ("00700",)),
+    "days_total": Cell("S300001", ("014",), ("00800",)),
+    "medicaid_net_revenue": Cell("S100001", ("002",), ("00100",)),
 }
 
 # Gross fixed-asset lines on Worksheet G (land through non-depreciable minor equipment).
@@ -120,6 +140,21 @@ def build_fields(cells: pd.DataFrame, specs: dict[str, Cell], prefix: str = "") 
     """One row per report, one column per spec. Missing stays missing (never zero-filled)."""
     wide = pd.DataFrame({prefix + name: sum_cell(cells, spec) for name, spec in specs.items()})
     return wide.rename_axis("hcris_rpt_rec_num").reset_index()
+
+
+def apply_newer_version(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+    """Where HCRIS holds a different version of a report, take shared fields from HCRIS.
+
+    Keeps every input consistent with the version that interest and accumulated
+    depreciation were read from. The public-file value is kept in `<field>_public`.
+    """
+    out = df.copy()
+    newer = out["hcris_matched"] & ~out["hcris_same_version"]
+    for field in fields:
+        out[f"{field}_public"] = out[field]
+        out.loc[newer, field] = out.loc[newer, f"hcris_{field}"]
+    out["values_from_hcris"] = newer
+    return out
 
 
 def worksheets_needed() -> list[str]:

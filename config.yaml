@@ -13,9 +13,32 @@ data:
   # Raw HCRIS (Form CMS-2552-10) for the same federal fiscal year. Supplies interest
   # expense and accumulated depreciation, which the public-use file leaves out.
   hcris_url: "https://downloads.cms.gov/FILES/HCRIS/HOSP10FY2024.ZIP"
+  # When HCRIS holds a newer version of a report than the public-use file, take the
+  # overlapping fields from HCRIS so every input comes from the same version.
+  prefer_hcris_when_versions_differ: true
   cost_report_url: "https://data.cms.gov/sites/default/files/2026-10/46b1f5a0-a9dd-4431-beee-2ee7194b4135/CostReport_2024_Final.csv"
   # CMS "Hospital General Information" (Care Compare), dataset xubh-q36u.
   hgi_url: "https://data.cms.gov/provider-data/sites/default/files/resources/893c372430d9d71a1c52737d01239d47_1785189955/Hospital_General_Information.csv"
+
+# Which hospitals are analysed (Phase 2 onward).
+scope:
+  # CMS "CCN Facility Type": STH = short-term acute, CAH = critical access.
+  # Missouri's one Rural Emergency Hospital is coded STH, so it is included.
+  # Left out: PH psychiatric, LTCH long-term care, RH rehabilitation, CH children's.
+  facility_types: [STH, CAH]
+  # A report shorter than this is too short to scale up to a year and is dropped.
+  min_period_days: 180
+
+# Methodology choices for the financial metrics (Phase 2).
+metrics:
+  days_in_year: 365
+  # false: operating revenue = net patient revenue only.
+  # true:  operating revenue = net patient revenue + total other income
+  #        (other income mixes operating items with investment gains and donations).
+  operating_revenue_includes_other_income: false
+  # A blank line is read as zero when the hospital filed that statement
+  # (balance sheet lines need total assets; income lines need net income).
+  blank_lines_are_zero_when_statement_filed: true
 
 quality:
   # A cost report covering fewer/more days than this is flagged as partial/odd-length.

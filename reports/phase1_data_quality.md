@@ -13,22 +13,58 @@ Three candidate interest measures are pulled; none has been chosen yet. A blank 
 | interest_a7_booked       |       116 |          85.9 |
 | interest_a7_allowable    |        71 |          52.6 |
 
-## Raw HCRIS: agreement with the public file on shared cells (10)
+## Raw HCRIS: agreement with the public file on shared cells (46)
 
-Same-version rows prove the parsing. Different-version rows show how much a report changed between the two CMS snapshots.
+Same-version rows prove the parsing. Different-version rows show how much a report changed between the two CMS snapshots; for those reports the HCRIS value is used.
 
-| version                 | field               |   compared |   agree |   differ |
-|:------------------------|:--------------------|-----------:|--------:|---------:|
-| different record number | cash                |         37 |      36 |        1 |
-| different record number | total_fixed_assets  |         39 |      38 |        1 |
-| different record number | depreciation        |         39 |      37 |        2 |
-| different record number | net_income          |         39 |      37 |        2 |
-| different record number | net_patient_revenue |         39 |      38 |        1 |
-| same record number      | cash                |         77 |      77 |        0 |
-| same record number      | total_fixed_assets  |         87 |      87 |        0 |
-| same record number      | depreciation        |         92 |      92 |        0 |
-| same record number      | net_income          |         92 |      92 |        0 |
-| same record number      | net_patient_revenue |         92 |      92 |        0 |
+| version                 | field                  |   compared |   agree |   differ |
+|:------------------------|:-----------------------|-----------:|--------:|---------:|
+| different record number | cash                   |         37 |      36 |        1 |
+| different record number | temp_investments       |          6 |       6 |        0 |
+| different record number | total_fixed_assets     |         39 |      38 |        1 |
+| different record number | total_assets           |         39 |      38 |        1 |
+| different record number | notes_loans_short_term |         21 |      21 |        0 |
+| different record number | mortgage_payable       |          5 |       4 |        1 |
+| different record number | notes_payable          |         16 |      16 |        0 |
+| different record number | unsecured_loans        |          3 |       3 |        0 |
+| different record number | other_lt_liabilities   |         30 |      29 |        1 |
+| different record number | total_lt_liabilities   |         37 |      36 |        1 |
+| different record number | total_fund_balances    |         39 |      38 |        1 |
+| different record number | total_patient_revenue  |         39 |      39 |        0 |
+| different record number | net_patient_revenue    |         39 |      38 |        1 |
+| different record number | operating_expense      |         39 |      37 |        2 |
+| different record number | other_income           |         39 |      38 |        1 |
+| different record number | other_expenses         |         23 |      22 |        1 |
+| different record number | net_income             |         39 |      37 |        2 |
+| different record number | depreciation           |         39 |      37 |        2 |
+| different record number | salaries               |         39 |      38 |        1 |
+| different record number | days_medicare          |         39 |      30 |        9 |
+| different record number | days_medicaid          |         39 |      37 |        2 |
+| different record number | days_total             |         39 |      38 |        1 |
+| different record number | medicaid_net_revenue   |         37 |      37 |        0 |
+| same record number      | cash                   |         77 |      77 |        0 |
+| same record number      | temp_investments       |         13 |      13 |        0 |
+| same record number      | total_fixed_assets     |         87 |      87 |        0 |
+| same record number      | total_assets           |         87 |      87 |        0 |
+| same record number      | notes_loans_short_term |         34 |      34 |        0 |
+| same record number      | mortgage_payable       |          9 |       9 |        0 |
+| same record number      | notes_payable          |         30 |      30 |        0 |
+| same record number      | unsecured_loans        |          5 |       5 |        0 |
+| same record number      | other_lt_liabilities   |         63 |      63 |        0 |
+| same record number      | total_lt_liabilities   |         74 |      74 |        0 |
+| same record number      | total_fund_balances    |         87 |      87 |        0 |
+| same record number      | total_patient_revenue  |         92 |      92 |        0 |
+| same record number      | net_patient_revenue    |         92 |      92 |        0 |
+| same record number      | operating_expense      |         92 |      92 |        0 |
+| same record number      | other_income           |         92 |      92 |        0 |
+| same record number      | other_expenses         |         29 |      29 |        0 |
+| same record number      | net_income             |         92 |      92 |        0 |
+| same record number      | depreciation           |         92 |      92 |        0 |
+| same record number      | salaries               |         92 |      92 |        0 |
+| same record number      | days_medicare          |         90 |      90 |        0 |
+| same record number      | days_medicaid          |         91 |      91 |        0 |
+| same record number      | days_total             |         91 |      91 |        0 |
+| same record number      | medicaid_net_revenue   |         63 |      63 |        0 |
 
 ## Raw HCRIS: fixed-asset roll-up failures (0)
 
@@ -51,7 +87,7 @@ Blank cells are left blank. A blank may mean zero or may mean not reported; the 
 | net_patient_revenue    |         4 |           3   |
 | operating_expense      |         4 |           3   |
 | other_income           |         4 |           3   |
-| other_expenses         |        83 |          61.5 |
+| other_expenses         |        84 |          62.2 |
 | net_income             |         4 |           3   |
 | depreciation           |         4 |           3   |
 | cash                   |        21 |          15.6 |
@@ -65,7 +101,7 @@ Blank cells are left blank. A blank may mean zero or may mean not reported; the 
 | notes_loans_short_term |        80 |          59.3 |
 | total_fund_balances    |         9 |           6.7 |
 | days_medicare          |         6 |           4.4 |
-| days_medicaid          |         6 |           4.4 |
+| days_medicaid          |         5 |           3.7 |
 | days_total             |         5 |           3.7 |
 | medicaid_net_revenue   |        35 |          25.9 |
 | star_rating            |        58 |          43   |
@@ -131,13 +167,14 @@ Blank cells are left blank. A blank may mean zero or may mean not reported; the 
 | 260105 | SSM SAINT LOUIS UNIVERSITY HOSPITAL  | STH                 | unsecured_loans        |      -2.17077e+08 |
 | 260214 | BELTON REGIONAL MEDICAL CENTER       | STH                 | unsecured_loans        |      -7.69756e+07 |
 
-## Failed consistency checks (41)
+## Failed consistency checks (42)
 
 
 
 |    ccn | hospital_name                        | ccn_facility_type   | check                               |
 |-------:|:-------------------------------------|:--------------------|:------------------------------------|
 | 260141 | UNIV OF MISSOURI HEALTH CARE         | STH                 | balance sheet does not balance      |
+| 261333 | PIKE COUNTY MEMORIAL HOSPITAL        | CAH                 | balance sheet does not balance      |
 | 260061 | NEVADA REGIONAL MEDICAL CENTER       | STH                 | balance sheet does not balance      |
 | 263304 | SHRINERS HOSPITALS FOR CHILDREN      | CH                  | no balance sheet reported           |
 | 264020 | ROYAL OAKS HOSPITAL                  | PH                  | no balance sheet reported           |
