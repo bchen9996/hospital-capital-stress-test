@@ -94,7 +94,7 @@ def show_hospital(row: pd.Series, details: pd.DataFrame, cfg: dict) -> None:
         ("Days cash on hand", dash.fmt_number(row["days_cash_on_hand"])),
         ("Average age of plant", dash.fmt_number(row["avg_age_of_plant"], " yrs")),
         ("Debt / capitalization", dash.fmt_pct(row["debt_to_capitalization"])),
-        ("Existing debt service (approx.)", dash.fmt_money(row["existing_debt_service"])),
+        ("Debt service (approx.)", dash.fmt_money(row["existing_debt_service"])),
         ("Medicaid share of days", dash.fmt_pct(row["medicaid_share_days"])),
         ("Medicare share of days", dash.fmt_pct(row["medicare_share_days"])),
     ]
@@ -109,7 +109,8 @@ def show_hospital(row: pd.Series, details: pd.DataFrame, cfg: dict) -> None:
             st.write("Not available: headroom needs EBIDA and debt service, and interest expense is missing.")
         else:
             st.dataframe(dash.scenario_table(row), hide_index=True, use_container_width=True)
-            st.caption(f"Stressed headroom (the lowest): {dash.fmt_money(row['headroom_stressed'])} a year.")
+            st.caption("Headroom is the extra annual debt or rent payment the hospital could carry. "
+                       f"Stressed headroom (the lowest): {dash.fmt_money(row['headroom_stressed'])} a year.")
             st.markdown("**What that payment could borrow**")
             st.dataframe(dash.principal_table(row, cfg["capital_types"]), hide_index=True, use_container_width=True)
     with right:

@@ -2,7 +2,7 @@
 
 Screens each hospital's finances from public CMS data, estimates how much new annual
 debt or rent payment it could carry, reruns that under stress, and matches it to a rung
-on a capital ladder. Built in phases. **Phases 1 (data ingestion), 2 (financial metrics), 3 (stress test) and 4 (capital matcher) are done; Phase 5 (dashboard) is not built yet.**
+on a capital ladder. Built in phases. All five phases are built: data ingestion, financial metrics, stress test, capital matcher and dashboard. Missouri only so far.
 
 Screening and educational tool only. Not financial, investment, or municipal advisory advice.
 Based on public data that may be 1-2 years old.
@@ -14,7 +14,8 @@ pip install -r requirements.txt
 python scripts/phase1.py     # downloads CMS files, builds data/hospitals.duckdb, writes the quality report
 python scripts/phase2.py     # computes metrics; writes reports/phase2_metrics.csv and phase2_summary.md
 python scripts/phase3.py     # headroom, stress scenarios, affordable principal
-python scripts/phase4.py     # geocodes addresses (Census Bureau), matches hospitals to the capital ladder
+python scripts/phase4.py     # geocodes addresses (Census Bureau, then OpenStreetMap), matches hospitals to the capital ladder
+streamlit run app.py         # the dashboard
 pytest
 ```
 
@@ -178,15 +179,35 @@ screening. None is an official eligibility rule of any program, lender or invest
 ### Location data
 
 - **Coordinates and census tract:** U.S. Census Bureau geocoder, from the street address.
-  14 of 99 addresses do not geocode; their tract, and so their NMTC status, is unknown.
+  The 14 addresses it cannot place are sent to OpenStreetMap's geocoder, which finds 13;
+  their tract then comes from a Census coordinate lookup. One hospital (St. Luke's East,
+  Lee's Summit) is still unlocated, so its NMTC status is unknown and it is not on the map.
 - **Town population:** the incorporated place the address falls in, from the Census Bureau's
-  city and town file (April 2020 base). Where the address did not geocode or lies outside
-  town limits, the mailing city's name is matched instead (20 hospitals).
+  city and town file (April 2020 base). Where the address lies outside town limits or was
+  not located, the mailing city's name is matched instead.
 - **NMTC low-income tracts:** the CDFI Fund's eligibility dataset (2016-2020 ACS, 2020 tracts).
 - A town of 20,000 or fewer is not the same as USDA-eligible: small suburbs of large metro
   areas pass this screen. USDA's own eligibility map is the real test.
 - The CMS rural/urban flag in the cost report is not used. It marks Barnes-Jewish Hospital in
   St. Louis as rural, so it is not trusted here.
+
+## Dashboard (Phase 5)
+
+```bash
+streamlit run app.py
+```
+
+- **Map:** one dot per hospital, coloured by stressed headroom as a share of net patient
+  revenue (red = negative, blue = positive, grey = cannot assess). The colour bands are
+  `dashboard.headroom_margin_bands` in `config.yaml`.
+- **Click a dot** (or use the dropdown under the map) to see that hospital's metrics, its
+  headroom under each scenario, what that payment could borrow, and its capital matches
+  with the reason for every rung.
+- **Sliders** in the left sidebar change the target coverage ratio, the three shock sizes
+  and the variable cost share. The stress test and the capital matches are recalculated on
+  every change; the Phase 2 metrics are not affected.
+- **Table:** every hospital, sortable by clicking a column heading, with a CSV download.
+- The page logic lives in `app.py`; everything it calculates is in `src/hcap/dashboard.py`.
 
 ### What the stress test cannot see
 

@@ -88,7 +88,7 @@ def scenario_table(row: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({
         "Scenario": [SCENARIO_LABELS[n] for n in names],
         "EBIDA": [fmt_money(row["ebida"] if n == "baseline" else row[f"ebida_{n}"]) for n in names],
-        "Headroom (extra annual payment)": [fmt_money(row[f"headroom_{n}"]) for n in names],
+        "Headroom": [fmt_money(row[f"headroom_{n}"]) for n in names],
     })
 
 

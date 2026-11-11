@@ -66,3 +66,22 @@ def test_app_renders_without_error() -> None:
     app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
     assert not app.exception
     assert any(dash.DISCLAIMER in caption.value for caption in app.caption)
+
+
+@pytest.mark.skipif(not (ROOT / "data" / "hospitals.duckdb").exists(), reason="database not built")
+def test_sliders_recalculate_the_page() -> None:
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    negative = lambda a: int(next(m.value for m in a.metric if m.label == "Negative under stress"))  # noqa: E731
+    before = negative(app)
+    volume = next(s for s in app.sidebar.slider if s.label == "Patient volume drop")
+    volume.set_value(0.30).run()
+    assert not app.exception
+    assert negative(app) > before  # a deeper volume drop pushes more hospitals negative
+
+
+def test_nearest_label_finds_the_clicked_dot() -> None:
+    hospitals = pd.DataFrame({"label": ["A", "B", "C"], "latitude": [38.0, 39.0, None], "longitude": [-92.0, -94.0, None]})
+    assert dash.nearest_label(hospitals, {"lat": 39.0001, "lng": -94.0001}) == "B"
+    assert dash.nearest_label(hospitals, None) is None

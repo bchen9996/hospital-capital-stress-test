@@ -43,6 +43,8 @@ class Verdict:
 
 def money(value: float) -> str:
     """Dollars as a short string: $3.2M, -$450K."""
+    if value == 0:
+        return "$0"
     sign = "-" if value < 0 else ""
     value = abs(value)
     return f"{sign}${value / 1e6:.1f}M" if value >= 1e6 else f"{sign}${value / 1e3:.0f}K"
